@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "508586114616",
+    "project_id": "threelinediary-9b7e4",
+    "storage_bucket": "threelinediary-9b7e4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:508586114616:android:296e8344d1fbde03e870cd",
+        "android_client_info": {
+          "package_name": "com.example.three_line_diary"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPkKVGtg0TCzu12z5lJx3oSd1WHoKsIzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
