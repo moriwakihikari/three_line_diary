@@ -1,29 +1,60 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// ユーザーデータをproviderに
-class UserState extends ChangeNotifier {
-  User? user;
+/// ユーザー情報の受け渡しを行うためのProvider
+final userProvider = StateProvider((ref) {
+  return FirebaseAuth.instance.currentUser;
+});
 
-  void setUser(User newUser) {
-    user = newUser;
-    notifyListeners();
-  }
-}
+// エラー情報の受け渡しを行うためのProvider
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final infoTextProvider = StateProvider.autoDispose((ref) {
+  return '';
+});
+
+// メールアドレスの受け渡しを行うためのProvider
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final emailProvider = StateProvider.autoDispose((ref) {
+  return '';
+});
+
+// パスワードの受け渡しを行うためのProvider
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final passwordProvider = StateProvider.autoDispose((ref) {
+  return '';
+});
+
+// メッセージの受け渡しを行うためのProvider
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final messageTextProvider = StateProvider.autoDispose((ref) {
+  return '';
+});
+
+// StreamProviderを使うことでStreamも扱うことができる
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final postsQueryProvider = StreamProvider.autoDispose((ref) {
+  return FirebaseFirestore.instance
+      .collection('posts')
+      .orderBy('date')
+      .snapshots();
+});
 
 void main() async {
   // 初期化処理
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(ThreeLineDiary());
+  runApp(
+    // Riverpodでデータを受け渡しできる状態にする
+    ProviderScope(
+      child: ThreeLineDiary(),
+    ),
+  );
 }
 
 class ThreeLineDiary extends StatelessWidget {
-  // ユーザーの情報を管理するデータ
-  final UserState userState = UserState();
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,22 +68,13 @@ class ThreeLineDiary extends StatelessWidget {
   }
 }
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerWidget {
   @override
-  State<LoginPage> createState() => LoginPageState();
-}
-
-class LoginPageState extends State<LoginPage> {
-  // メッセージ表示用
-  String infoText = '';
-  // 入力したメールアドレス・パスワード
-  String email = '';
-  String password = '';
-
-  @override
-  Widget build(BuildContext context) {
-    // ユーザー情報を受け取る
-    // final UserState userState = Provider.of<UserState>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Providerから値を受け取る
+    final infoText = ref.watch(infoTextProvider);
+    final email = ref.watch(emailProvider);
+    final password = ref.watch(passwordProvider);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -68,9 +90,8 @@ class LoginPageState extends State<LoginPage> {
               TextFormField(
                 decoration: InputDecoration(labelText: 'メールアドレス'),
                 onChanged: (String value) {
-                  setState(() {
-                    email = value;
-                  });
+                  // Providerから値を更新
+                  ref.read(emailProvider.state).state = value;
                 },
               ),
               // パスワード入力
@@ -78,9 +99,8 @@ class LoginPageState extends State<LoginPage> {
                 decoration: InputDecoration(labelText: 'パスワード'),
                 obscureText: true,
                 onChanged: (String value) {
-                  setState(() {
-                    password = value;
-                  });
+                  // Providerから値を更新
+                  ref.read(passwordProvider.state).state = value;
                 },
               ),
               Container(
@@ -110,9 +130,9 @@ class LoginPageState extends State<LoginPage> {
                       );
                     } catch (e) {
                       // ユーザー登録に失敗した場合
-                      setState(() {
-                        infoText = "登録に失敗しました:${e.toString()}";
-                      });
+                      // Providerから値を更新
+                      ref.read(infoTextProvider.state).state =
+                          "登録に失敗しました：${e.toString()}";
                     }
                   },
                 ),
@@ -140,9 +160,8 @@ class LoginPageState extends State<LoginPage> {
                           );
                         } catch (e) {
                           // ログインに失敗した場合
-                          setState(() {
-                            infoText = "ログインに失敗しました:(e.toString())";
-                          });
+                          ref.read(infoTextProvider.state).state =
+                              "ログインに失敗しました：${e.toString()}";
                         }
                       }))
             ],
@@ -154,13 +173,32 @@ class LoginPageState extends State<LoginPage> {
 }
 
 // 日記投稿ページ
-class ThreeLineDiaryPage extends StatelessWidget {
+class ThreeLineDiaryPage extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Providerから値を受け取る
+    final User user = ref.watch(userProvider)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('ThreeLineDiaryPage'),
-      ),
-    );
+        appBar: AppBar(title: Text('ThreeLineDiaryPage'), actions: <Widget>[
+          IconButton(
+              onPressed: () async {
+                // ログアウト処理
+                // 内部で保持しているログイン情報等が初期化される
+                // （現時点ではログアウト時はこの処理を呼び出せばOKと、思うぐらいで大丈夫です）
+                await FirebaseAuth.instance.signOut(); // ログイン画面に遷移＋チャット画面を破棄
+                await Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) {
+                    return LoginPage();
+                  }),
+                );
+              },
+              icon: Icon(Icons.close))
+        ]),
+        body: Column(
+          children: [
+            Container(
+                padding: EdgeInsets.all(8), child: Text('ログイン情報:${user.email}'))
+          ],
+        ));
   }
 }
