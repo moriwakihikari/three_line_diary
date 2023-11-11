@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 /// ユーザー情報の受け渡しを行うためのProvider
 final userProvider = StateProvider((ref) {
@@ -155,7 +156,7 @@ class LoginPage extends ConsumerWidget {
                           // チャット画面に遷移＋ログイン画面を破棄
                           await Navigator.of(context).pushReplacement(
                             MaterialPageRoute(builder: (context) {
-                              return ThreeLineDiaryPage();
+                              return Calender();
                             }),
                           );
                         } catch (e) {
@@ -199,6 +200,46 @@ class ThreeLineDiaryPage extends ConsumerWidget {
             Container(
                 padding: EdgeInsets.all(8), child: Text('ログイン情報:${user.email}'))
           ],
+        ));
+  }
+}
+
+DateTime _focused = DateTime.now();
+DateTime? _selected; //追記
+
+class Calender extends StatefulWidget {
+  const Calender({super.key});
+
+  @override
+  State<Calender> createState() => _CalenderState();
+}
+
+class _CalenderState extends State<Calender> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text("カレンダー"),
+        ),
+        body: Center(
+          child: TableCalendar(
+            firstDay: DateTime.utc(2022, 4, 1),
+            lastDay: DateTime.utc(2025, 12, 31),
+            selectedDayPredicate: (day) {
+              return isSameDay(_selected, day);
+            },
+            // --追記----------------------------------
+            onDaySelected: (selected, focused) {
+              if (!isSameDay(_selected, selected)) {
+                setState(() {
+                  _selected = selected;
+                  _focused = focused;
+                });
+              }
+            },
+            focusedDay: _focused,
+            // --追記----------------------------------
+          ),
         ));
   }
 }
