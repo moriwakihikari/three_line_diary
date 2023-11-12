@@ -161,7 +161,8 @@ class LoginPage extends ConsumerWidget {
                         } catch (e) {
                           // ログインに失敗した場合
                           ref.read(infoTextProvider.state).state =
-                              "ログインに失敗しました：${e.toString()}";
+                              "ログインに失敗しました。";
+                          print(e);
                         }
                       }))
             ],
@@ -202,3 +203,138 @@ class ThreeLineDiaryPage extends ConsumerWidget {
         ));
   }
 }
+<<<<<<< Updated upstream
+=======
+
+DateTime _focused = DateTime.now();
+DateTime? _selected; //追記
+
+class Calender extends StatefulWidget {
+  const Calender({super.key});
+
+  @override
+  State<Calender> createState() => _CalenderState();
+}
+
+class _CalenderState extends State<Calender> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('ThreeLineDiaryPage'), actions: <Widget>[
+        IconButton(
+            onPressed: () async {
+              // ログアウト処理
+              // 内部で保持しているログイン情報等が初期化される
+              // （現時点ではログアウト時はこの処理を呼び出せばOKと、思うぐらいで大丈夫です）
+              await FirebaseAuth.instance.signOut(); // ログイン画面に遷移＋チャット画面を破棄
+              await Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) {
+                  return LoginPage();
+                }),
+              );
+            },
+            icon: Icon(Icons.close))
+      ]),
+      body: Center(
+        child: TableCalendar(
+          firstDay: DateTime.utc(2022, 4, 1),
+          lastDay: DateTime.utc(2025, 12, 31),
+          selectedDayPredicate: (day) {
+            return isSameDay(_selected, day);
+          },
+          // --追記----------------------------------
+          onDaySelected: (selected, focused) {
+            if (!isSameDay(_selected, selected)) {
+              setState(() {
+                _selected = selected;
+                _focused = focused;
+              });
+            }
+          },
+          focusedDay: _focused,
+          // --追記----------------------------------
+        ),
+      ),
+      // フローティングアクションボタンを追加
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // 投稿画面に遷移する処理
+          // _selected が null でないことを確認
+          if (_selected != null) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) {
+                return PostPage(selectedDate: _selected!);
+              }),
+            );
+          } else {
+            // 選択された日付がない場合の処理（例：エラーメッセージの表示）
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('日付が選択されていません。')),
+            );
+          }
+        },
+        child: Icon(Icons.add), // プラスアイコン
+      ),
+    );
+  }
+}
+
+class PostPage extends StatelessWidget {
+  final DateTime selectedDate;
+
+  // コンストラクタで日付を受け取る
+  PostPage({Key? key, required this.selectedDate}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('投稿画面'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              ('選択された日付: ${selectedDate.toLocal()}'),
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 20),
+            TextFormField(
+              decoration: InputDecoration(labelText: '良かったこと'),
+            ),
+            SizedBox(height: 20),
+            TextFormField(
+              decoration: InputDecoration(labelText: '悪かったこと'),
+            ),
+            SizedBox(height: 20),
+            TextFormField(
+              decoration: InputDecoration(labelText: '明日の目標'),
+            ),
+            SizedBox(height: 20),
+            TextFormField(
+              maxLines: 3,
+              decoration: InputDecoration(labelText: '補足'),
+            ),
+            SizedBox(height: 20),
+            Center(
+              // Centerウィジェットを使用して中央に配置
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) {
+                      return Calender();
+                    }),
+                  );
+                },
+                child: Text('登録する'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+>>>>>>> Stashed changes
