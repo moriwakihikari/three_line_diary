@@ -17,12 +17,24 @@ final focusedCalendarProvider = StateProvider<DateTime?>((ref) {
   return DateTime.now(); // 現在の日時を初期値として設定;
 });
 
+// StreamProviderを使うことでStreamも扱うことができる
+// ※ autoDisposeを付けることで自動的に値をリセットできます
+final postsQueryProvider = StreamProvider.autoDispose((ref) {
+  return FirebaseFirestore.instance
+      .collection('diary')
+      .orderBy('updatedAt')
+      .snapshots();
+});
+
 DateTime _focused = DateTime.now();
 DateTime? _selected; //追記
 
 class Calendar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<QuerySnapshot> asyncPostsQuery =
+        ref.watch(postsQueryProvider);
+
     return Scaffold(
       appBar: AppBar(title: Text('ThreeLineDiaryPage'), actions: <Widget>[
         IconButton(
@@ -39,23 +51,46 @@ class Calendar extends ConsumerWidget {
             },
             icon: Icon(Icons.close))
       ]),
-      body: Center(
-        child: TableCalendar(
-          firstDay: DateTime.utc(2022, 4, 1),
-          lastDay: DateTime.utc(2025, 12, 31),
-          selectedDayPredicate: (day) {
-            return isSameDay(ref.watch(selectedDateProvider), day);
-          },
-          // --追記----------------------------------
-          onDaySelected: (selected, focused) {
-            if (!isSameDay(ref.watch(selectedDateProvider), selected)) {
-              ref.read(selectedDateProvider.state).state = selected;
-              ref.read(focusedCalendarProvider.state).state = focused;
-            }
-          },
-          focusedDay: _focused,
-          // --追記----------------------------------
-        ),
+      body: Column(
+        children: [
+          Center(
+            child: TableCalendar(
+              firstDay: DateTime.utc(2022, 4, 1),
+              lastDay: DateTime.utc(2025, 12, 31),
+              selectedDayPredicate: (day) {
+                return isSameDay(ref.watch(selectedDateProvider), day);
+              },
+              // --追記----------------------------------
+              onDaySelected: (selected, focused) {
+                if (!isSameDay(ref.watch(selectedDateProvider), selected)) {
+                  ref.read(selectedDateProvider.state).state = selected;
+                  ref.read(focusedCalendarProvider.state).state = focused;
+                }
+              },
+              focusedDay: _focused,
+              // --追記----------------------------------
+            ),
+          ),
+          Expanded(
+            child: asyncPostsQuery.when(
+              loading: () => Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Text('エラーが発生しました: $err'),
+              data: (QuerySnapshot snapshot) {
+                // Firestoreのデータをリストとして表示
+                return ListView(
+                  children: snapshot.docs.map((document) {
+                    return ListTile(
+                      title: Text(
+                          document['positiveAspects']), // 例: 'title'フィールドを表示
+                      subtitle: Text(
+                          document['challenges']), // 例: 'description'フィールドを表示
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       // フローティングアクションボタンを追加
       floatingActionButton: FloatingActionButton(
