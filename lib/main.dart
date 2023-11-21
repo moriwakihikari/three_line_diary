@@ -44,7 +44,7 @@ final postsQueryProvider = StreamProvider.autoDispose((ref) {
 });
 
 void main() async {
-  // 初期化処理
+  // Firebase初期化処理
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(
@@ -122,6 +122,7 @@ class LoginPage extends ConsumerWidget {
                           email: email, password: password);
                       // ユーザー情報を更新
                       // userState.setUser(result.user!);
+                      ref.read(userProvider.state).state = result.user;
                       // ユーザー登録に成功した場合
                       // チャット画面に遷移＋ログイン画面を破棄
                       await Navigator.of(context).pushReplacement(
@@ -150,13 +151,15 @@ class LoginPage extends ConsumerWidget {
                           final result = await auth.signInWithEmailAndPassword(
                               email: email, password: password);
 
+                          String userId = result.user?.uid ?? ''; // ユーザーIDの取得
+
                           // ユーザー情報を更新
                           // userState.setUser(result.user!);
                           // ログインに成功した場合
                           // チャット画面に遷移＋ログイン画面を破棄
                           await Navigator.of(context).pushReplacement(
                             MaterialPageRoute(builder: (context) {
-                              return Calender();
+                              return Calendar();
                             }),
                           );
                         } catch (e) {
@@ -208,42 +211,17 @@ class ThreeLineDiaryPage extends ConsumerWidget {
 DateTime _focused = DateTime.now();
 DateTime? _selected; //追記
 
-class Calender extends StatefulWidget {
-  const Calender({super.key});
+class Calendar extends StatefulWidget {
+  const Calendar({super.key});
 
   @override
-  State<Calender> createState() => _CalenderState();
+  State<Calendar> createState() => _CalendarState();
 }
 
-class _CalenderState extends State<Calender> {
+class _CalendarState extends State<Calendar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("カレンダー"),
-        ),
-        body: Center(
-          child: TableCalendar(
-            firstDay: DateTime.utc(2022, 4, 1),
-            lastDay: DateTime.utc(2025, 12, 31),
-            selectedDayPredicate: (day) {
-              return isSameDay(_selected, day);
-            },
-            // --追記----------------------------------
-            onDaySelected: (selected, focused) {
-              if (!isSameDay(_selected, selected)) {
-                setState(() {
-                  _selected = selected;
-                  _focused = focused;
-                });
-              }
-            },
-            focusedDay: _focused,
-            // --追記----------------------------------
-          ),
-        ));
-  }
-}
       appBar: AppBar(title: Text('ThreeLineDiaryPage'), actions: <Widget>[
         IconButton(
             onPressed: () async {
@@ -303,14 +281,35 @@ class _CalenderState extends State<Calender> {
   }
 }
 
-class PostPage extends StatelessWidget {
+class PostPage extends ConsumerWidget {
   final DateTime selectedDate;
-
+  final TextEditingController positiveAspectController =
+      TextEditingController();
+  final TextEditingController challengeController = TextEditingController();
+  final TextEditingController tomorrowGoalController = TextEditingController();
+  final TextEditingController additionalNoteController =
+      TextEditingController();
   // コンストラクタで日付を受け取る
   PostPage({Key? key, required this.selectedDate}) : super(key: key);
 
+  void registerData(BuildContext context, WidgetRef ref) async {
+    final User user = ref.watch(userProvider)!;
+    String userId = user.uid; // ユーザーIDを適切に設定してください。
+    await FirebaseFirestore.instance.collection('diary').add({
+      'positiveAspects': positiveAspectController.text,
+      'challenges': challengeController.text,
+      'tomorrowGoals': tomorrowGoalController.text,
+      'additionalNotes': additionalNoteController.text,
+      'createdAt': DateTime.now(),
+      'updatedAt': DateTime.now(),
+      'userId': userId,
+    });
+
+    // データ登録後の処理（例：ダイアログ表示、ページ遷移など）をここに追加。
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: Text('投稿画面'),
@@ -326,29 +325,33 @@ class PostPage extends StatelessWidget {
             ),
             SizedBox(height: 20),
             TextFormField(
+              controller: positiveAspectController,
               decoration: InputDecoration(labelText: '良かったこと'),
             ),
             SizedBox(height: 20),
             TextFormField(
+              controller: challengeController,
               decoration: InputDecoration(labelText: '悪かったこと'),
             ),
             SizedBox(height: 20),
             TextFormField(
+              controller: tomorrowGoalController,
               decoration: InputDecoration(labelText: '明日の目標'),
             ),
             SizedBox(height: 20),
             TextFormField(
+              controller: additionalNoteController,
               maxLines: 3,
               decoration: InputDecoration(labelText: '補足'),
             ),
             SizedBox(height: 20),
             Center(
-              // Centerウィジェットを使用して中央に配置
               child: ElevatedButton(
                 onPressed: () {
+                  registerData(context, ref);
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) {
-                      return Calender();
+                      return Calendar(); // Calendarの実装に合わせてください。
                     }),
                   );
                 },
