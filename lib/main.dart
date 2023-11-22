@@ -4,15 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'views/login.dart';
 
-// StreamProviderを使うことでStreamも扱うことができる
-// ※ autoDisposeを付けることで自動的に値をリセットできます
-final postsQueryProvider = StreamProvider.autoDispose((ref) {
-  return FirebaseFirestore.instance
-      .collection('posts')
-      .orderBy('date')
-      .snapshots();
-});
-
 void main() async {
   // Firebase初期化処理
   WidgetsFlutterBinding.ensureInitialized();
