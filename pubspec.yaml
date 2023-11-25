@@ -41,6 +41,7 @@ dependencies:
   flutter_riverpod: ^2.4.5
   cloud_firestore: ^4.13.0
   table_calendar: ^3.0.9
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

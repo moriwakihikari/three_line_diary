@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:three_line_diary/views/calendar.dart';
 import 'package:three_line_diary/views/login.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 class PostPage extends ConsumerWidget {
   final TextEditingController positiveAspectController =
@@ -45,7 +47,7 @@ class PostPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              ('選択された日付: ${selectedDate.toLocal()}'),
+              ('選択された日付: ${DateFormat('yyyy/MM/dd').format(selectedDate.toLocal())}'),
               style: TextStyle(fontSize: 18),
             ),
             SizedBox(height: 20),
