@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -32,8 +33,46 @@ DateTime? _selected; //追記
 class Calendar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    int getHashCode(DateTime key) {
+      return key.day * 1000000 + key.month * 10000 + key.year;
+    }
+
     final AsyncValue<QuerySnapshot> asyncPostsQuery =
         ref.watch(postsQueryProvider);
+    final _eventsList = asyncPostsQuery.when(
+      data: (QuerySnapshot snapshot) {
+        // イベントを格納する新しいマップを作成
+        final Map<DateTime, List<String>> events = {};
+
+        // スナップショット内の各ドキュメントをイテレート
+        for (final document in snapshot.docs) {
+          // 'date'がドキュメントのTimestampフィールドであると仮定
+          final Timestamp timestamp = document.get('createdAt');
+          final DateTime date = timestamp.toDate();
+          final String diaryEntry =
+              document.get('tomorrowGoals'); // 実際のフィールド名に置き換えてください
+
+          // その日付のリストが既に存在するかを確認し、なければ作成
+          events.putIfAbsent(date, () => []);
+          // その日付のリストに日記エントリを追加
+          events[date]!.add(diaryEntry);
+        }
+
+        return events;
+      },
+      loading: () => <DateTime, List<String>>{}, // ロード中は空のマップを返す
+      error: (e, stack) => <DateTime, List<String>>{}, // エラー時は空のマップを返す
+    );
+    //--追記--------------------------------------------------------------
+
+    final _events = LinkedHashMap<DateTime, List<String>>(
+      equals: isSameDay,
+      hashCode: getHashCode,
+    )..addAll(_eventsList);
+
+    List getEvent(DateTime day) {
+      return _events[day] ?? [];
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text('ThreeLineDiaryPage'), actions: <Widget>[
@@ -57,6 +96,7 @@ class Calendar extends ConsumerWidget {
             child: TableCalendar(
               firstDay: DateTime.utc(2022, 4, 1),
               lastDay: DateTime.utc(2025, 12, 31),
+              eventLoader: getEvent,
               selectedDayPredicate: (day) {
                 return isSameDay(ref.watch(selectedDateProvider), day);
               },
