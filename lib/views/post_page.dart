@@ -20,7 +20,8 @@ class PostPage extends ConsumerWidget {
 
   void registerData(BuildContext context, WidgetRef ref) async {
     final User user = ref.watch(userProvider)!;
-    String userId = user.uid; // ユーザーIDを適切に設定してください。
+    final selectedDate = ref.watch(selectedDateProvider)!;
+    String userId = user.uid;
     await FirebaseFirestore.instance.collection('diary').add({
       'positiveAspects': positiveAspectController.text,
       'challenges': challengeController.text,
@@ -28,6 +29,7 @@ class PostPage extends ConsumerWidget {
       'additionalNotes': additionalNoteController.text,
       'createdAt': DateTime.now(),
       'updatedAt': DateTime.now(),
+      'postDate': selectedDate,
       'userId': userId,
     });
 
