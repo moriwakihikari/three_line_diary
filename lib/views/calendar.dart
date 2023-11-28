@@ -47,7 +47,7 @@ class Calendar extends ConsumerWidget {
         // スナップショット内の各ドキュメントをイテレート
         for (final document in snapshot.docs) {
           // 'date'がドキュメントのTimestampフィールドであると仮定
-          final Timestamp timestamp = document.get('createdAt');
+          final Timestamp timestamp = document.get('postDate');
           final DateTime date = timestamp.toDate();
           final String diaryEntry =
               document.get('tomorrowGoals'); // 実際のフィールド名に置き換えてください
