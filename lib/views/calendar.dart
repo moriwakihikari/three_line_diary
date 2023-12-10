@@ -28,7 +28,7 @@ final postsQueryProvider = StreamProvider.autoDispose((ref) {
 });
 
 DateTime _focused = DateTime.now();
-DateTime? _selected; //追記
+DateTime? _selected;
 
 class Calendar extends ConsumerWidget {
   @override
@@ -63,7 +63,6 @@ class Calendar extends ConsumerWidget {
       loading: () => <DateTime, List<String>>{}, // ロード中は空のマップを返す
       error: (e, stack) => <DateTime, List<String>>{}, // エラー時は空のマップを返す
     );
-    //--追記--------------------------------------------------------------
 
     final _events = LinkedHashMap<DateTime, List<String>>(
       equals: isSameDay,
@@ -100,7 +99,6 @@ class Calendar extends ConsumerWidget {
               selectedDayPredicate: (day) {
                 return isSameDay(ref.watch(selectedDateProvider), day);
               },
-              // --追記----------------------------------
               onDaySelected: (selected, focused) {
                 if (!isSameDay(ref.watch(selectedDateProvider), selected)) {
                   ref.read(selectedDateProvider.state).state = selected;
@@ -108,7 +106,6 @@ class Calendar extends ConsumerWidget {
                 }
               },
               focusedDay: _focused,
-              // --追記----------------------------------
             ),
           ),
           Expanded(
@@ -116,14 +113,20 @@ class Calendar extends ConsumerWidget {
               loading: () => Center(child: CircularProgressIndicator()),
               error: (err, stack) => Text('エラーが発生しました: $err'),
               data: (QuerySnapshot snapshot) {
-                // Firestoreのデータをリストとして表示
+                var selectedDay = ref.watch(selectedDateProvider);
+                // 選択された日に関連するドキュメントのみをフィルタリング
+                var filteredDocs = snapshot.docs.where((document) {
+                  DateTime docDate = document['postDate']
+                      .toDate(); // Firestoreの日付フィールドをDateTimeに変換
+                  return isSameDay(docDate, selectedDay); // 選択された日とドキュメントの日付を比較
+                }).toList();
+
+                // フィルタリングされたドキュメントでリストを生成
                 return ListView(
-                  children: snapshot.docs.map((document) {
+                  children: filteredDocs.map((document) {
                     return ListTile(
-                      title: Text(
-                          document['positiveAspects']), // 例: 'title'フィールドを表示
-                      subtitle: Text(
-                          document['challenges']), // 例: 'description'フィールドを表示
+                      title: Text(document['positiveAspects']),
+                      subtitle: Text(document['challenges']),
                     );
                   }).toList(),
                 );
